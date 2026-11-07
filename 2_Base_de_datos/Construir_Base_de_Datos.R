@@ -16,20 +16,20 @@
 # -----------------------------------------------------------------------------
 # PASO 0. Elegir la carpeta del trabajo
 # -----------------------------------------------------------------------------
-# Se abre una ventana para elegir a mano la carpeta "TP Metodologia" (la que
+# Se abre una ventana para elegir a mano la carpeta "TP_Metodologia" (la que
 # contiene 1_Fuentes y 2_Base_de_datos), igual que el modelo con file.choose().
 elegir_carpeta <- function() {
     if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
-        raiz <- rstudioapi::selectDirectory(caption = "Elegí la carpeta TP Metodologia")
+        raiz <- rstudioapi::selectDirectory(caption = "Elegí la carpeta TP_Metodologia")
     } else if (.Platform$OS.type == "windows") {
-        raiz <- utils::choose.dir(caption = "Elegí la carpeta TP Metodologia")
+        raiz <- utils::choose.dir(caption = "Elegí la carpeta TP_Metodologia")
     } else {
         stop("Corré este script desde RStudio para poder elegir la carpeta.")
     }
     if (is.null(raiz) || is.na(raiz))
         stop("No se eligió ninguna carpeta.")
     if (!dir.exists(file.path(raiz, "1_Fuentes")) || !dir.exists(file.path(raiz, "2_Base_de_datos")))
-        stop("La carpeta elegida no tiene 1_Fuentes y 2_Base_de_datos. Elegí la carpeta TP Metodologia.")
+        stop("La carpeta elegida no tiene 1_Fuentes y 2_Base_de_datos. Elegí la carpeta TP_Metodologia.")
     normalizePath(raiz, winslash = "/")
 }
 
