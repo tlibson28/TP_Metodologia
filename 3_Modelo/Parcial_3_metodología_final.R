@@ -1,6 +1,4 @@
 # ========================================== #
-# TRABAJO PRÁCTICO - RANDOM FOREST
-# ========================================== #
 
 # 0. Instalar y cargar las librerías que necesitamos
 paquetes <- c("readxl", "ranger", "ggplot2", "DiagrammeR")
@@ -13,7 +11,15 @@ library(ggplot2)
 library(DiagrammeR)
 
 # 1. Leer y preparar nuestro dataset
-archivo <- file.choose() #Seleccionamos el archivo Excel con nuestra base de datos
+archivo <- "Base_de_datos_final_sin_dias.xlsx" #Cargamos el archivo
+
+#Si no se encuentra, se carga manualmente
+if (!file.exists(archivo)) {
+  cat("No se encontró el archivo en la carpeta del proyecto.\n")
+  cat("Por favor, seleccioná el archivo Excel manualmente.\n")
+  archivo <- file.choose()
+}
+
 df <- read_excel(archivo, sheet = "Base madre") #Leemos nuestro dataset
 
 df_clean <- df[!is.na(df$demanda_electrica_neta_media_MW), ] #Eliminamos las filas con valores faltantes en la demanda
@@ -36,7 +42,7 @@ df_modelo <- df_clean[, c(variable_objetivo, features)]
 df_modelo <- na.omit(df_modelo)
 
 # 2. Dividir los datos en entrenamiento y prueba
-set.seed(42) #Fijamos una semilla para poder reproducir la division
+set.seed(42) #Fijamos una semilla random para poder reproducir la division
 indices_train <- sample(seq_len(nrow(df_modelo)), size = floor(0.8 * nrow(df_modelo)))
 train <- df_modelo[indices_train, ]
 test <- df_modelo[-indices_train, ]
@@ -44,6 +50,9 @@ test <- df_modelo[-indices_train, ]
 
 # 3. Configurar y entrenar el Random Forest Regressor
 formula_rf <- reformulate(features, response = variable_objetivo)
+
+#Medimos el tiempo de entrenamiento
+inicio_entrenamiento <- Sys.time()
 
 rf_model <- ranger(
   formula = formula_rf,
@@ -54,9 +63,17 @@ rf_model <- ranger(
   importance = "impurity"
 ) #Le pasamos los parámetros y entrenamos el modelo
 
+final_entrenamiento <- Sys.time()
+
+
+
 # 4. Obtener las predicciones en el set de prueba
+inicio_prediccion <- Sys.time()
+
 y_real_MW <- test[[variable_objetivo]]
 y_pred_rf <- predict(rf_model, data = test)$predictions
+
+final_prediccion <- Sys.time()
 
 # 5. Calcular métricas para Random Forest
 errores <- y_real_MW - y_pred_rf
@@ -77,6 +94,16 @@ subestimacion_rf <- mean(picos_reales) - mean(picos_predichos_rf)
 #Calculamos la dispersion de los errores absolutos
 desvio_estandar_rf <- sd(errores_absolutos)
 coef_variacion_rf <- (desvio_estandar_rf / mean(errores_absolutos)) * 100
+
+#Calculamos el tiempo de entrenamiento y predicción
+tiempo_entrenamiento <- as.numeric(
+  difftime(final_entrenamiento, inicio_entrenamiento, units = "secs")
+)
+
+tiempo_prediccion <- as.numeric(
+  difftime(final_prediccion, inicio_prediccion, units = "secs")
+)
+
 
 # 6. Imprimir tabla de métricas para Random Forest
 metricas <- data.frame(
@@ -105,7 +132,7 @@ cat(sprintf("%-52s | %18s\n", "MÉTRICA", "RANDOM FOREST"))
 cat("====================================================================\n")
 for (i in seq_len(nrow(metricas))) {
   sufijo <- if (grepl("%", metricas$MÉTRICA[i])) "%" else ""
-  cat(sprintf("%-52s | %15.2f %s\n",
+  cat(sprintf("%-52s %15.2f %s\n",
               metricas$MÉTRICA[i],
               metricas[["RANDOM FOREST"]][i],
               sufijo))
@@ -113,6 +140,8 @@ for (i in seq_len(nrow(metricas))) {
 cat("Cantidad de muestras de picos analizadas:", length(picos_reales), "\n")
 cat(sprintf("Promedio Real de los Picos: %.2f MW\n", mean(picos_reales)))
 cat(sprintf("Promedio Predicho de los Picos (RF): %.2f MW\n", mean(picos_predichos_rf)))
+cat("Tiempo de entrenamiento:", tiempo_entrenamiento, "\n")
+cat("Tiempo de prediccion:", tiempo_prediccion, "\n")
 cat("====================================================================\n\n")
 
 
